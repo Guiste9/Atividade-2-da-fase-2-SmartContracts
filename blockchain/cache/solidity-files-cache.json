@@ -1,0 +1,41 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "C:\\Users\\pesso\\Desktop\\Desenvolvimento de Smart Contract Básico\\blockchain\\contracts\\RegistroDeUsuariosComRecompensa.sol": {
+      "lastModificationDate": 1776289452779,
+      "contentHash": "97908ec8db805579b093536f2b28f09c",
+      "sourceName": "contracts/RegistroDeUsuariosComRecompensa.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "RegistroDeUsuariosComRecompensa"
+      ]
+    }
+  }
+}
