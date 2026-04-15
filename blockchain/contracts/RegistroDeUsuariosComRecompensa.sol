@@ -2,14 +2,7 @@
 pragma solidity ^0.8.24;
 
 /*
- * ============================================================
- *  RegistroDeUsuariosComRecompensa
- *  Autor : você :)
- *  Rede  : EVM-compatível (Hardhat local / Sepolia / Polygon)
- * ============================================================
  *
- *  CONCEITOS-CHAVE
- *  ---------------
  *  GAS
  *    Toda instrução executada pela EVM (Ethereum Virtual Machine) tem
  *    um custo em "gas". Quem envia a transação define um gasLimit e
@@ -32,16 +25,6 @@ pragma solidity ^0.8.24;
  */
 
 contract RegistroDeUsuariosComRecompensa {
-
-    // ----------------------------------------------------------------
-    //  ESTRUTURA DE DADOS
-    // ----------------------------------------------------------------
-
-    /**
-     * @notice Representa um usuário da plataforma.
-     * @dev    Armazenada em storage (caro em gas); lida com `memory`
-     *         dentro das funções para economizar custo de leitura.
-     */
     struct Usuario {
         string  nome;          // Nome declarado pelo usuário
         bool    registrado;    // Flag de existência — evita busca nula
@@ -50,82 +33,36 @@ contract RegistroDeUsuariosComRecompensa {
 
     // mapping(chave => valor): estrutura de hash-table da EVM.
     // Cada slot é inicializado com o valor-zero do tipo (false / 0 / "").
-    // Custo de escrita: ~20 000 gas (SSTORE em slot frio).
     mapping(address => Usuario)  public usuarios;
-    mapping(address => uint256)  public saldosToken; // token simulado (off-chain)
+    mapping(address => uint256)  public saldosToken; // token simulado
 
-    // ----------------------------------------------------------------
-    //  ESTADO ADMINISTRATIVO
-    // ----------------------------------------------------------------
-
-    /// @notice Endereço que implantou o contrato — único a recompensar.
+    /// Endereço que implantou o contrato — único a recompensar.
     address public dono;
 
-    /// @notice Quantidade de tokens simulados por recompensa.
+    /// Quantidade de tokens simulados por recompensa.
     uint256 public constant VALOR_RECOMPENSA_PADRAO = 100;
-
-    // ----------------------------------------------------------------
-    //  EVENTOS
-    // ----------------------------------------------------------------
-
-    /**
-     * @notice Emitido sempre que um novo usuário é registrado.
-     * @param  carteira  Endereço que fez o registro.
-     * @param  nome      Nome informado.
-     * @param  timestamp Momento do registro (block.timestamp).
-     */
+    
     event UsuarioRegistrado(
         address indexed carteira,
         string          nome,
-        uint256         timestamp   // ← adicionado: útil para o frontend filtrar eventos
+        uint256         timestamp 
     );
 
     /**
-     * @notice Emitido quando o dono envia uma recompensa.
-     * @param  carteira Destinatário da recompensa.
-     * @param  valor    Quantidade de tokens creditados.
+     *  Emitido quando o dono envia uma recompensa.
+     *  carteira Destinatário da recompensa.
+     *  valor Quantidade de tokens creditados.
      */
     event RecompensaEnviada(address indexed carteira, uint256 valor);
-
-    // ----------------------------------------------------------------
-    //  CONSTRUTOR
-    // ----------------------------------------------------------------
-
-    /**
-     * @dev `msg.sender` no construtor é quem fez o deploy.
-     *      Esse endereço fica gravado em storage — custo único de SSTORE.
-     */
+    
     constructor() {
         dono = msg.sender;
     }
-
-    // ----------------------------------------------------------------
-    //  MODIFIER
-    // ----------------------------------------------------------------
-
-    /**
-     * @dev Modifier reutilizável: reverte a transação se o chamador
-     *      não for o dono. O `_;` marca onde o corpo da função entra.
-     *      Gas da checagem: ~200 (SLOAD) + ~3 (comparação).
-     */
     modifier apenasDono() {
         require(msg.sender == dono, "Apenas o dono pode recompensar usuarios.");
         _;
     }
 
-    // ----------------------------------------------------------------
-    //  FUNÇÕES PRINCIPAIS
-    // ----------------------------------------------------------------
-
-    /**
-     * @notice Registra o chamador como usuário da plataforma.
-     * @param  nome Nome público do usuário (não pode ser vazio).
-     *
-     * @dev `external` é mais barato que `public` para chamadas externas
-     *      porque os argumentos não são copiados para memória interna.
-     *      `require` consome todo o gas restante se falhar em versões
-     *      antigas; a partir do Solidity 0.8 reverte sem consumir tudo.
-     */
     function registrarUsuario(string memory nome) external {
         // Valida entrada — bytes(nome).length evita nome com só espaços vazios codificados
         require(bytes(nome).length > 0, "Nome nao pode ser vazio.");
@@ -144,19 +81,6 @@ contract RegistroDeUsuariosComRecompensa {
         emit UsuarioRegistrado(msg.sender, nome, block.timestamp);
     }
 
-    /**
-     * @notice Retorna os dados completos de um usuário.
-     * @param  carteira Endereço a consultar.
-     * @return nome         Nome registrado (string vazia se não existe).
-     * @return registrado   true se o endereço está cadastrado.
-     * @return dataRegistro Timestamp do registro (0 se não existe).
-     * @return saldo        Saldo de tokens simulados.
-     *
-     * @dev `view` garante que a função NÃO altera estado — leitura gratuita
-     *      quando chamada off-chain (ex.: wagmi useReadContract).
-     *      `memory` na struct: copia do storage para memória temporária,
-     *      evitando múltiplos SLOADs.
-     */
     function consultarUsuario(address carteira)
         external
         view
@@ -179,29 +103,16 @@ contract RegistroDeUsuariosComRecompensa {
             saldosToken[carteira]
         );
     }
-
-    /**
-     * @notice Credita VALOR_RECOMPENSA_PADRAO tokens ao usuário indicado.
-     * @param  carteira Endereço do usuário a recompensar.
-     *
-     * @dev Protegido por `apenasDono`. O token é simulado (off-chain):
-     *      não há transferência de ETH nem ERC-20 real — apenas um
-     *      saldo interno no mapping, o que seria substituído por um
-     *      contrato ERC-20 em produção.
-     */
     function recompensarUsuario(address carteira) external apenasDono {
         require(carteira != address(0), "Carteira invalida.");
         require(usuarios[carteira].registrado, "Usuario nao registrado.");
 
-        // += em uint256: sem risco de overflow no Solidity ^0.8 (reverte automaticamente)
         saldosToken[carteira] += VALOR_RECOMPENSA_PADRAO;
 
         emit RecompensaEnviada(carteira, VALOR_RECOMPENSA_PADRAO);
     }
 
-    // ================================================================
     //  CASO DE USO REAL
-    // ================================================================
     /*
      *  PLATAFORMA DE CURSOS ONLINE COM CERTIFICAÇÃO ON-CHAIN
      *  -------------------------------------------------------
