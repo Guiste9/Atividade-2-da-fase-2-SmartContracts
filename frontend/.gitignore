@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+cache/
+artifacts/
+deployments/localhost/     
+ignition/deployments/
